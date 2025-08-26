@@ -8,8 +8,5 @@ Bundle-ClassPath: .
 Bundle-Vendor: Portfolio Performance
 Require-Bundle: name.abuchen.portfolio;bundle-version="0.78.2"
 Export-Package: name.abuchen.portfolio.cli
-Import-Package: com.fasterxml.jackson.databind,
- com.fasterxml.jackson.core,
- com.fasterxml.jackson.annotation
 Automatic-Module-Name: name.abuchen.portfolio.cli
 Bundle-ActivationPolicy: lazy
