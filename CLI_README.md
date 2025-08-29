@@ -2,15 +2,33 @@
 
 A command-line interface for Portfolio Performance that allows users to read and query portfolio data without the graphical interface.
 
+## Problem Solved
+
+The original CLI suffered from Eclipse dependency issues:
+```bash
+./pp --file portfolio.xml accounts list
+Exception in thread "main" java.lang.NoClassDefFoundError: org/eclipse/core/runtime/IProgressMonitor
+```
+
 ## Architecture
 
-The CLI is implemented as a standalone Java application that:
+The CLI is now implemented as a **standalone Java application** that:
 
+- **Standalone Maven project**: Completely independent of Eclipse/OSGi dependencies
 - **Uses picocli for command parsing**: Professional CLI framework with automatic help generation
-- **Uses Jackson for JSON serialization**: Robust JSON handling instead of custom implementation  
+- **Uses Jackson for JSON serialization**: Robust JSON handling for output formatting
+- **Uses XStream for XML parsing**: Compatible with Portfolio Performance XML files
 - **Standalone fat jar**: Single executable JAR (7.6MB) with all dependencies included
-- **Java 17+ compatible**: No longer requires Java 21 or Eclipse/OSGi runtime
-- **Reuses Portfolio domain concepts**: Compatible with Portfolio Performance XML format
+- **Java 17+ compatible**: Reduced from Java 21 requirement, no Eclipse runtime needed
+- **Reuses Portfolio domain concepts**: Built with simplified model classes that mirror the core architecture
+
+## Key Changes Made
+
+1. **Converted from Eclipse plugin to standalone Maven project**
+2. **Created simplified model classes** that can parse Portfolio Performance XML files
+3. **Implemented XStream configuration** based on the core module but without Eclipse dependencies
+4. **Added comprehensive CLI framework** with picocli for better user experience
+5. **Fixed XML parsing** to properly handle Portfolio Performance file structure
 
 ## Building
 
@@ -20,7 +38,7 @@ The CLI requires Java 17+ to build and run.
 
 ```bash
 cd name.abuchen.portfolio.cli
-mvn clean compile package -DskipTests
+mvn clean package -DskipTests
 ```
 
 This creates `target/portfolio-cli.jar` containing all dependencies.
@@ -85,21 +103,55 @@ Human-readable tabular output suitable for terminal viewing.
 Machine-readable output perfect for scripting and integration:
 
 ```bash
-./pp --file portfolio.xml --format json accounts list | jq '.[] | select(.currency=="USD")'
+./pp --file portfolio.xml --format JSON accounts list | jq '.[] | select(.currency=="USD")'
 ```
 
-## Environment Variables
+## Testing
 
-- `PP_JVM_OPTS` - Additional JVM options (default: `-Xmx1G`)
-- `PP_DEBUG` - Set to 'true' to enable debug output
-- `JAVA_HOME` - Java installation directory (Java 17+ required)
+Run the test suite:
+
+```bash
+cd name.abuchen.portfolio.cli
+mvn test
+```
+
+The tests validate:
+- Portfolio XML file parsing
+- XStream configuration  
+- Service layer functionality
+- CLI command execution
 
 ## File Compatibility
 
-- **Supported**: Unencrypted Portfolio Performance XML files
+- **Supported**: Unencrypted Portfolio Performance XML files (all versions)
 - **Not supported**: Encrypted portfolio files (will show clear error message)
+- **Format**: Standard Portfolio Performance XML format with accounts, portfolios, securities, and transactions
 
 ## Technical Details
+
+### XStream Configuration
+
+The CLI uses a custom XStream configuration that:
+- Maps Portfolio Performance XML elements to simplified model classes
+- Handles date/time conversions (LocalDate, LocalDateTime)
+- Ignores unknown elements for forward compatibility
+- Provides security restrictions for safe XML parsing
+
+### Model Classes
+
+Simplified model classes (`name.abuchen.portfolio.cli.model.*`) that mirror the core Portfolio Performance domain:
+- `Client` - Root portfolio container
+- `Account` - Bank accounts with transactions
+- `Portfolio` - Investment portfolios with transactions  
+- `Security` - Securities (stocks, bonds, etc.)
+- `AccountTransaction` / `PortfolioTransaction` - Transaction records
+
+### Dependencies
+
+- **picocli 4.7.5** - Command line parsing framework
+- **Jackson 2.17.0** - JSON serialization
+- **XStream 1.4.20** - XML parsing for portfolio files
+- **JUnit 5** - Testing framework
 
 ### Dependencies
 - **picocli 4.7.5**: Command-line parsing and help generation

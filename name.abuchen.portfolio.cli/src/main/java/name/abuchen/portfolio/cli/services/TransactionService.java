@@ -36,7 +36,7 @@ public class TransactionService
 
             for (Client.AccountTransaction transaction : account.getTransactions())
             {
-                if (shouldIncludeTransaction(transaction, type, fromDate, toDate))
+                if (shouldIncludeAccountTransaction(transaction, type, fromDate, toDate))
                 {
                     Map<String, Object> txInfo = createAccountTransactionMap(transaction, account.getName());
                     transactions.add(txInfo);
@@ -49,7 +49,7 @@ public class TransactionService
         {
             for (Client.PortfolioTransaction transaction : portfolio.getTransactions())
             {
-                if (shouldIncludeTransaction(transaction, type, fromDate, toDate))
+                if (shouldIncludePortfolioTransaction(transaction, type, fromDate, toDate))
                 {
                     Map<String, Object> txInfo = createPortfolioTransactionMap(transaction, portfolio.getName());
                     transactions.add(txInfo);
@@ -67,38 +67,46 @@ public class TransactionService
         return transactions;
     }
 
-    private boolean shouldIncludeTransaction(Client.AccountTransaction transaction, String type, 
+    private boolean shouldIncludeAccountTransaction(Client.AccountTransaction transaction, String type, 
                                            LocalDate fromDate, LocalDate toDate)
     {
+        if (transaction.getDate() == null) return false;
+        
+        LocalDate txDate = transaction.getDate();
+        
         // Check date range
-        if (fromDate != null && transaction.getDate().isBefore(fromDate))
+        if (fromDate != null && txDate.isBefore(fromDate))
             return false;
-        if (toDate != null && transaction.getDate().isAfter(toDate))
+        if (toDate != null && txDate.isAfter(toDate))
             return false;
 
         // Check type filter
         if (type != null && transaction.getType() != null)
         {
-            if (!transaction.getType().equalsIgnoreCase(type))
+            if (!transaction.getType().toLowerCase().contains(type.toLowerCase()))
                 return false;
         }
 
         return true;
     }
 
-    private boolean shouldIncludeTransaction(Client.PortfolioTransaction transaction, String type, 
+    private boolean shouldIncludePortfolioTransaction(Client.PortfolioTransaction transaction, String type, 
                                            LocalDate fromDate, LocalDate toDate)
     {
+        if (transaction.getDate() == null) return false;
+        
+        LocalDate txDate = transaction.getDate();
+        
         // Check date range
-        if (fromDate != null && transaction.getDate().isBefore(fromDate))
+        if (fromDate != null && txDate.isBefore(fromDate))
             return false;
-        if (toDate != null && transaction.getDate().isAfter(toDate))
+        if (toDate != null && txDate.isAfter(toDate))
             return false;
 
         // Check type filter
         if (type != null && transaction.getType() != null)
         {
-            if (!transaction.getType().equalsIgnoreCase(type))
+            if (!transaction.getType().toLowerCase().contains(type.toLowerCase()))
                 return false;
         }
 
@@ -137,7 +145,8 @@ public class TransactionService
         // Add shares for portfolio transactions
         if (transaction.getShares() > 0)
         {
-            txInfo.put("shares", transaction.getShares());
+            double shares = transaction.getShares() / 1000000.0; // Scale factor for shares
+            txInfo.put("shares", shares);
         }
 
         return txInfo;

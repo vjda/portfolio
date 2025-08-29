@@ -1,6 +1,5 @@
 package name.abuchen.portfolio.cli.services;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,8 +65,38 @@ public class AccountService
 
     private long calculateBalance(Client.Account account)
     {
+        if (account.getTransactions() == null) 
+        {
+            return 0;
+        }
+        
         return account.getTransactions().stream()
-                .mapToLong(Client.AccountTransaction::getAmount)
+                .mapToLong(transaction -> {
+                    // Simple heuristic for transaction types
+                    String type = transaction.getType();
+                    if (type == null) return 0;
+                    
+                    // Income types
+                    if (type.toLowerCase().contains("deposit") || 
+                        type.toLowerCase().contains("dividend") || 
+                        type.toLowerCase().contains("interest") ||
+                        type.toLowerCase().contains("sell") ||
+                        type.toLowerCase().contains("transfer_in"))
+                    {
+                        return transaction.getAmount();
+                    }
+                    // Expense types
+                    else if (type.toLowerCase().contains("removal") || 
+                             type.toLowerCase().contains("fee") || 
+                             type.toLowerCase().contains("tax") ||
+                             type.toLowerCase().contains("buy") ||
+                             type.toLowerCase().contains("transfer_out"))
+                    {
+                        return -transaction.getAmount();
+                    }
+                    
+                    return 0;
+                })
                 .sum();
     }
 

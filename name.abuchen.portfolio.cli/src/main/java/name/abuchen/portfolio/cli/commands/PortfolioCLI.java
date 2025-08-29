@@ -100,6 +100,12 @@ public class PortfolioCLI implements Callable<Integer>
                     "Accounts: " + cachedClient.getAccounts().size() + 
                     ", Portfolios: " + cachedClient.getPortfolios().size() +
                     ", Securities: " + cachedClient.getSecurities().size());
+            
+            for (Client.Account account : cachedClient.getAccounts()) 
+            {
+                System.err.println("Account: " + account.getName() + " (UUID: " + account.getUuid() + 
+                    ", transactions: " + (account.getTransactions() != null ? account.getTransactions().size() : "null") + ")");
+            }
         }
 
         return cachedClient;

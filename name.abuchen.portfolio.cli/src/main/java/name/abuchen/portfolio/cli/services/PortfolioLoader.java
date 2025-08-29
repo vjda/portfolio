@@ -5,8 +5,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.security.AnyTypePermission;
 
+import name.abuchen.portfolio.cli.util.XStreamConfigurationUtil;
 import name.abuchen.portfolio.cli.model.Client;
 
 /**
@@ -18,27 +18,7 @@ public class PortfolioLoader
 
     public PortfolioLoader()
     {
-        xstream = new XStream();
-        xstream.addPermission(AnyTypePermission.ANY);
-        configureXStream();
-    }
-
-    private void configureXStream()
-    {
-        // Configure aliases for the main classes
-        xstream.alias("client", Client.class);
-        xstream.alias("account", Client.Account.class);
-        xstream.alias("portfolio", Client.Portfolio.class);
-        xstream.alias("security", Client.Security.class);
-        xstream.alias("account-transaction", Client.AccountTransaction.class);
-        xstream.alias("portfolio-transaction", Client.PortfolioTransaction.class);
-
-        // Configure implicit collections - these are the collection names in the XML
-        xstream.addImplicitCollection(Client.class, "accounts", "account", Client.Account.class);
-        xstream.addImplicitCollection(Client.class, "portfolios", "portfolio", Client.Portfolio.class);
-        xstream.addImplicitCollection(Client.class, "securities", "security", Client.Security.class);
-        xstream.addImplicitCollection(Client.Account.class, "transactions", "account-transaction", Client.AccountTransaction.class);
-        xstream.addImplicitCollection(Client.Portfolio.class, "transactions", "portfolio-transaction", Client.PortfolioTransaction.class);
+        xstream = XStreamConfigurationUtil.createConfiguredXStream();
     }
 
     /**
