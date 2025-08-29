@@ -6,12 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import name.abuchen.portfolio.model.Account;
-import name.abuchen.portfolio.model.Client;
-import name.abuchen.portfolio.money.CurrencyConverter;
-import name.abuchen.portfolio.money.CurrencyConverterImpl;
-import name.abuchen.portfolio.money.ExchangeRateProviderFactory;
-import name.abuchen.portfolio.snapshot.AccountSnapshot;
+import name.abuchen.portfolio.cli.model.Client;
 
 /**
  * Service for working with accounts.
@@ -19,14 +14,10 @@ import name.abuchen.portfolio.snapshot.AccountSnapshot;
 public class AccountService
 {
     private final Client client;
-    private final CurrencyConverter converter;
 
     public AccountService(Client client)
     {
         this.client = client;
-        // Use the same currency converter setup as the main application
-        this.converter = new CurrencyConverterImpl(ExchangeRateProviderFactory.getExchangeRateProvider(),
-                client.getBaseCurrency());
     }
 
     /**
@@ -35,27 +26,18 @@ public class AccountService
     public List<Map<String, Object>> listAccounts()
     {
         List<Map<String, Object>> accounts = new ArrayList<>();
-        LocalDate now = LocalDate.now();
 
-        for (Account account : client.getAccounts())
+        for (Client.Account account : client.getAccounts())
         {
             Map<String, Object> accountInfo = new HashMap<>();
             accountInfo.put("name", account.getName());
             accountInfo.put("currency", account.getCurrencyCode());
             accountInfo.put("note", account.getNote() != null ? account.getNote() : "");
 
-            // Calculate current balance using snapshot
-            try
-            {
-                AccountSnapshot snapshot = AccountSnapshot.create(account, converter, now);
-                accountInfo.put("balance", snapshot.getFunds().toString());
-                accountInfo.put("balance_amount", snapshot.getFunds().getAmount());
-            }
-            catch (Exception e)
-            {
-                accountInfo.put("balance", "Error calculating balance");
-                accountInfo.put("balance_amount", 0L);
-            }
+            // Calculate simple balance (sum of all transactions)
+            long balance = calculateBalance(account);
+            accountInfo.put("balance", formatAmount(balance, account.getCurrencyCode()));
+            accountInfo.put("balance_amount", balance);
 
             accounts.add(accountInfo);
         }
@@ -66,7 +48,7 @@ public class AccountService
     /**
      * Find account by name (case-insensitive).
      */
-    public Account findAccountByName(String name)
+    public Client.Account findAccountByName(String name)
     {
         return client.getAccounts().stream()
                 .filter(account -> account.getName().equalsIgnoreCase(name))
@@ -80,5 +62,19 @@ public class AccountService
     public int getAccountCount()
     {
         return client.getAccounts().size();
+    }
+
+    private long calculateBalance(Client.Account account)
+    {
+        return account.getTransactions().stream()
+                .mapToLong(Client.AccountTransaction::getAmount)
+                .sum();
+    }
+
+    private String formatAmount(long amount, String currency)
+    {
+        // Convert from cents to main currency unit
+        double value = amount / 100.0;
+        return String.format("%.2f %s", value, currency);
     }
 }

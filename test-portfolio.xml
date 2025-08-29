@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<client version="62">
+  <accounts>
+    <account>
+      <uuid>account1</uuid>
+      <name>Test Checking</name>
+      <currencyCode>USD</currencyCode>
+      <note>Test checking account</note>
+      <transactions>
+        <account-transaction>
+          <date>2024-01-01</date>
+          <type>deposit</type>
+          <currencyCode>USD</currencyCode>
+          <amount>100000</amount>
+          <note>Initial deposit</note>
+        </account-transaction>
+        <account-transaction>
+          <date>2024-01-15</date>
+          <type>withdrawal</type>
+          <currencyCode>USD</currencyCode>
+          <amount>2500</amount>
+          <note>ATM withdrawal</note>
+        </account-transaction>
+      </transactions>
+    </account>
+    <account>
+      <uuid>account2</uuid>
+      <name>Test Savings</name>
+      <currencyCode>EUR</currencyCode>
+      <note>Test savings account</note>
+      <transactions>
+        <account-transaction>
+          <date>2024-01-01</date>
+          <type>deposit</type>
+          <currencyCode>EUR</currencyCode>
+          <amount>50000</amount>
+          <note>Initial deposit</note>
+        </account-transaction>
+      </transactions>
+    </account>
+  </accounts>
+  <portfolios>
+    <portfolio>
+      <uuid>portfolio1</uuid>
+      <name>Test Portfolio</name>
+      <referenceAccount>account1</referenceAccount>
+      <transactions>
+        <portfolio-transaction>
+          <date>2024-01-10</date>
+          <type>buy</type>
+          <currencyCode>USD</currencyCode>
+          <amount>10000</amount>
+          <shares>100</shares>
+          <note>Test stock purchase</note>
+          <security>stock1</security>
+        </portfolio-transaction>
+      </transactions>
+    </portfolio>
+  </portfolios>
+  <securities>
+    <security>
+      <uuid>stock1</uuid>
+      <name>Test Corp</name>
+      <isin>US1234567890</isin>
+      <tickerSymbol>TEST</tickerSymbol>
+      <currencyCode>USD</currencyCode>
+    </security>
+  </securities>
+</client>
