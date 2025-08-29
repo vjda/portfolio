@@ -1,119 +1,188 @@
 # Portfolio Performance CLI
 
-This directory contains a command-line interface (CLI) for Portfolio Performance that allows you to read and query portfolio data without the graphical interface.
+A command-line interface for Portfolio Performance that allows users to read and query portfolio data without the graphical interface.
 
-## Prerequisites
+## Architecture
 
-- Java 21 or higher
-- Maven (for building)
+The CLI is implemented as a standalone Java application that:
 
-## Setup
+- **Uses picocli for command parsing**: Professional CLI framework with automatic help generation
+- **Uses Jackson for JSON serialization**: Robust JSON handling instead of custom implementation  
+- **Standalone fat jar**: Single executable JAR (7.6MB) with all dependencies included
+- **Java 17+ compatible**: No longer requires Java 21 or Eclipse/OSGi runtime
+- **Reuses Portfolio domain concepts**: Compatible with Portfolio Performance XML format
 
-1. **Build the project:**
-   ```bash
-   mvn -f portfolio-app/pom.xml clean compile -Plocal-dev
-   ```
+## Building
 
-2. **Make the script executable (if needed):**
-   ```bash
-   chmod +x pp
-   ```
+The CLI requires Java 17+ to build and run.
 
-## Usage
-
-The CLI provides a simple shell script `pp` that launches the Java application:
+### Build the fat jar:
 
 ```bash
-# List all accounts
-./pp --file my-portfolio.xml accounts list
+cd name.abuchen.portfolio.cli
+mvn clean compile package -DskipTests
+```
 
-# List transactions with JSON output
-./pp --file my-portfolio.xml --format json transactions list
+This creates `target/portfolio-cli.jar` containing all dependencies.
 
-# List transactions for a specific account
-./pp --file my-portfolio.xml transactions list --account "My Savings"
+### Shell launcher:
 
-# List transactions with date range
-./pp --file my-portfolio.xml transactions list --from 2024-01-01 --to 2024-12-31
+The `pp` script in the root directory provides an easy way to run the CLI:
 
-# Show help
+```bash
+# The script will check for the fat jar and provide build instructions if missing
 ./pp --help
 ```
 
-## Command Reference
+## Usage
 
-### Global Options
+### Basic Commands
+
+```bash
+# Show help
+./pp --help
+
+# Show version  
+./pp --version
+
+# List accounts in a portfolio file
+./pp --file my-portfolio.xml accounts list
+
+# List transactions with filtering
+./pp --file my-portfolio.xml transactions list --from 2024-01-01 --to 2024-12-31
+
+# Get JSON output for scripting
+./pp --file my-portfolio.xml --format json accounts list
+```
+
+### Command Structure
+
+```
+pp --file <portfolio.xml> [global-options] <command> [command-options]
+```
+
+**Global Options:**
 - `--file, -f <file>` - Portfolio file path (required)
-- `--format <format>` - Output format: `table` (default), `json`
+- `--format <format>` - Output format: table (default), json
 - `--verbose, -v` - Verbose output
-- `--help` - Show help
+- `--backup` - Create backup before writing (for future write operations)
+- `--dry-run` - Show what would be done without making changes
 
-### Commands
+**Commands:**
+- `accounts list` - List all accounts with balances
+- `transactions list` - List transactions with optional filtering
+  - `--account <name>` - Filter by account name
+  - `--type <type>` - Filter by transaction type  
+  - `--from <date>` - Start date (YYYY-MM-DD)
+  - `--to <date>` - End date (YYYY-MM-DD)
 
-#### Accounts
+## Output Formats
+
+### Table Format (default)
+Human-readable tabular output suitable for terminal viewing.
+
+### JSON Format
+Machine-readable output perfect for scripting and integration:
+
 ```bash
-./pp --file portfolio.xml accounts list
+./pp --file portfolio.xml --format json accounts list | jq '.[] | select(.currency=="USD")'
 ```
-Lists all accounts with name, currency, current balance, and notes.
-
-#### Transactions
-```bash
-./pp --file portfolio.xml transactions list [options]
-```
-Lists transactions with optional filtering:
-- `--account <name>` - Filter by account name
-- `--type <type>` - Filter by transaction type (buy, sell, dividend, deposit, withdrawal, etc.)
-- `--from <date>` - Start date (YYYY-MM-DD format)
-- `--to <date>` - End date (YYYY-MM-DD format)
 
 ## Environment Variables
 
-- `PP_JVM_OPTS` - Additional JVM options (default: `-Xmx1G --enable-native-access=ALL-UNNAMED`)
-- `PP_DEBUG` - Set to `true` to enable debug output
-- `JAVA_HOME` - Java installation directory (Java 21+ required)
+- `PP_JVM_OPTS` - Additional JVM options (default: `-Xmx1G`)
+- `PP_DEBUG` - Set to 'true' to enable debug output
+- `JAVA_HOME` - Java installation directory (Java 17+ required)
 
-## Examples
+## File Compatibility
 
+- **Supported**: Unencrypted Portfolio Performance XML files
+- **Not supported**: Encrypted portfolio files (will show clear error message)
+
+## Technical Details
+
+### Dependencies
+- **picocli 4.7.5**: Command-line parsing and help generation
+- **Jackson 2.17.0**: JSON serialization with Java 8+ time support
+- **XStream 1.4.20**: XML parsing for Portfolio Performance files
+
+### Error Handling
+- Clear error messages for common issues (missing files, encryption, invalid arguments)
+- Encryption detection with helpful guidance
+- Build verification with instructions when fat jar is missing
+
+### Integration Examples
+
+**With jq for JSON processing:**
 ```bash
-# Basic usage
-./pp --file ~/Documents/my-portfolio.xml accounts list
+# Get accounts with balance > 1000
+./pp --file portfolio.xml --format json accounts list | \
+  jq '.[] | select(.balance_amount > 100000)'
 
-# JSON output for scripting
-./pp --file ~/Documents/my-portfolio.xml --format json transactions list > transactions.json
-
-# Filter recent buy transactions
-./pp --file ~/Documents/my-portfolio.xml transactions list --type buy --from 2024-01-01
-
-# Debug mode
-PP_DEBUG=true ./pp --file ~/Documents/my-portfolio.xml accounts list
-
-# Custom JVM options
-PP_JVM_OPTS="-Xmx2G -Duser.timezone=UTC" ./pp --file ~/Documents/my-portfolio.xml accounts list
+# Export transactions to CSV
+./pp --file portfolio.xml --format json transactions list | \
+  jq -r '.[] | [.date, .type, .amount, .account] | @csv'
 ```
 
-## Supported File Formats
+**With bash scripting:**
+```bash
+#!/bin/bash
+# Monitor portfolio changes
+for file in portfolios/*.xml; do
+  echo "=== $(basename "$file") ==="
+  ./pp --file "$file" accounts list
+done
+```
 
-- **Unencrypted XML files**: Standard Portfolio Performance XML format
-- **Encrypted files**: Not supported (will show error with clear message)
+## Development
+
+### Project Structure
+```
+name.abuchen.portfolio.cli/
+├── src/main/java/name/abuchen/portfolio/cli/
+│   ├── commands/           # CLI command classes
+│   ├── model/             # Simplified domain model  
+│   ├── services/          # Business logic services
+│   └── util/              # Output formatting utilities
+├── src/test/java/         # Unit tests
+└── pom.xml               # Standalone Maven project
+```
+
+### Adding New Commands
+
+1. Create command class in `commands/` package
+2. Annotate with `@Command` from picocli
+3. Add as subcommand to `PortfolioCLI`
+4. Implement business logic in `services/` package
+
+### Running Tests
+
+```bash
+mvn test
+```
+
+## Future Enhancements
+
+The CLI foundation supports future extensions for:
+- Transaction creation and editing
+- Account management operations
+- Data validation and integrity checks  
+- CSV import/export functionality
+- Bulk operations across multiple portfolio files
+- Integration with external APIs and data sources
 
 ## Troubleshooting
 
-1. **"Project not built" error**: Run the Maven build command shown above
-2. **Java version error**: Install Java 21+ and set `JAVA_HOME` appropriately
-3. **File not found**: Ensure the portfolio file path is correct and accessible
-4. **Encrypted file error**: Export your portfolio to unencrypted XML format first
+**"CLI fat jar not found"**
+- Run: `cd name.abuchen.portfolio.cli && mvn clean package -DskipTests`
 
-## Integration with Other Tools
+**"Java 17+ required"**  
+- Install Java 17+ and set `JAVA_HOME` environment variable
 
-The JSON output format makes it easy to integrate with other tools:
+**"Encrypted portfolio files not supported"**
+- Export your portfolio to unencrypted XML format from Portfolio Performance
 
+**For detailed debugging:**
 ```bash
-# Extract account names with jq
-./pp --file portfolio.xml --format json accounts list | jq -r '.[].name'
-
-# Count transactions by type
-./pp --file portfolio.xml --format json transactions list | jq 'group_by(.type) | map({type: .[0].type, count: length})'
-
-# Export to CSV (requires jq and csvkit)
-./pp --file portfolio.xml --format json transactions list | jq -r '(.[0] | keys_unsorted) as $keys | $keys, (.[] | [.[$keys[]]) | @csv'
+PP_DEBUG=true ./pp --file portfolio.xml accounts list
 ```
